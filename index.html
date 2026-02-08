@@ -1,0 +1,1381 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Dino Quiz</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0b0f14;
+      --bg-2: #111827;
+      --card: #141a24;
+      --card-2: #0f172a;
+      --text: #e5e7eb;
+      --muted: #94a3b8;
+      --accent: #38bdf8;
+      --accent-2: #22c55e;
+      --danger: #ef4444;
+      --shadow: 0 20px 50px rgba(0,0,0,0.35);
+      --radius: 18px;
+      --radius-sm: 12px;
+      --grad: radial-gradient(1200px 600px at 10% -20%, rgba(56,189,248,0.18), transparent 60%),
+              radial-gradient(800px 500px at 100% 0%, rgba(34,197,94,0.12), transparent 55%),
+              linear-gradient(180deg, #0b0f14 0%, #0b1018 100%);
+      --focus: 0 0 0 3px rgba(56,189,248,0.35);
+    }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+      background: var(--grad);
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+    .app {
+      width: min(980px, 100%);
+      background: linear-gradient(180deg, rgba(20,26,36,0.95), rgba(12,16,24,0.95));
+      border: 1px solid rgba(148,163,184,0.12);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      position: relative;
+    }
+    .app::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(600px 400px at 85% -10%, rgba(56,189,248,0.14), transparent 60%);
+      pointer-events: none;
+    }
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 18px 22px;
+      background: rgba(15,23,42,0.7);
+      border-bottom: 1px solid rgba(148,163,184,0.1);
+      position: relative;
+      z-index: 1;
+    }
+    header h1 {
+      margin: 0;
+      font-size: 20px;
+      letter-spacing: 0.4px;
+    }
+    header .controls {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+    .btn {
+      border: 1px solid rgba(148,163,184,0.18);
+      background: rgba(30,41,59,0.7);
+      color: var(--text);
+      padding: 10px 14px;
+      border-radius: 999px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: transform 0.15s ease, border-color 0.2s ease, background 0.2s ease;
+    }
+    .btn:hover { transform: translateY(-1px); border-color: rgba(56,189,248,0.5); }
+    .btn:focus-visible { outline: none; box-shadow: var(--focus); }
+
+    .content {
+      padding: 28px;
+      display: grid;
+      gap: 22px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .screen {
+      display: none;
+      animation: fadeIn 0.35s ease;
+    }
+    .screen.active { display: block; }
+
+    .card {
+      background: linear-gradient(180deg, rgba(20,26,36,0.9), rgba(12,18,28,0.95));
+      border-radius: var(--radius-sm);
+      border: 1px solid rgba(148,163,184,0.14);
+      padding: 22px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+    }
+
+    .split {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 18px;
+    }
+
+    .muted { color: var(--muted); }
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      background: rgba(56,189,248,0.12);
+      color: var(--accent);
+      border: 1px solid rgba(56,189,248,0.3);
+    }
+
+    .toggle {
+      display: inline-flex;
+      gap: 6px;
+      background: rgba(15,23,42,0.7);
+      padding: 4px;
+      border-radius: 999px;
+      border: 1px solid rgba(148,163,184,0.15);
+    }
+    .toggle button {
+      border: none;
+      background: transparent;
+      color: var(--muted);
+      padding: 8px 14px;
+      border-radius: 999px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    .toggle button.active {
+      color: var(--text);
+      background: rgba(56,189,248,0.2);
+      border: 1px solid rgba(56,189,248,0.4);
+    }
+
+    .question-title {
+      font-size: 20px;
+      margin: 0 0 10px 0;
+    }
+    .answers {
+      display: grid;
+      gap: 12px;
+    }
+    .answer {
+      background: rgba(15,23,42,0.6);
+      border: 1px solid rgba(148,163,184,0.18);
+      padding: 14px 16px;
+      border-radius: 12px;
+      cursor: pointer;
+      text-align: left;
+      transition: border-color 0.2s ease, transform 0.15s ease, background 0.2s ease;
+    }
+    .answer:hover { transform: translateY(-1px); border-color: rgba(56,189,248,0.5); }
+    .answer:focus-visible { outline: none; box-shadow: var(--focus); }
+    .answer.correct { background: rgba(34,197,94,0.2); border-color: rgba(34,197,94,0.6); }
+    .answer.incorrect { background: rgba(239,68,68,0.2); border-color: rgba(239,68,68,0.6); }
+
+    .progress {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .progress-bar {
+      flex: 1;
+      height: 10px;
+      background: rgba(148,163,184,0.14);
+      border-radius: 999px;
+      overflow: hidden;
+    }
+    .progress-bar span {
+      display: block;
+      height: 100%;
+      background: linear-gradient(90deg, rgba(56,189,248,0.8), rgba(34,197,94,0.9));
+      width: 0%;
+      transition: width 0.4s ease;
+    }
+    .pill {
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: rgba(30,41,59,0.7);
+      border: 1px solid rgba(148,163,184,0.2);
+      font-size: 12px;
+    }
+
+    .explain {
+      border-left: 3px solid rgba(56,189,248,0.6);
+      padding: 10px 12px;
+      background: rgba(15,23,42,0.6);
+      border-radius: 8px;
+      display: none;
+    }
+    .explain.active { display: block; }
+
+    .footer-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    details {
+      background: rgba(15,23,42,0.6);
+      border-radius: 12px;
+      border: 1px solid rgba(148,163,184,0.14);
+      padding: 10px 14px;
+    }
+    details summary {
+      cursor: pointer;
+      font-weight: 600;
+    }
+
+    .badges {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .badge {
+      background: rgba(56,189,248,0.15);
+      border: 1px solid rgba(56,189,248,0.4);
+      color: var(--accent);
+      padding: 8px 12px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .hidden { display: none !important; }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @media (max-width: 640px) {
+      body { padding: 12px; }
+      header { flex-direction: column; align-items: flex-start; gap: 10px; }
+      .content { padding: 20px; }
+      .footer-actions { flex-direction: column; align-items: stretch; }
+      .btn { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app" aria-live="polite">
+    <header>
+      <h1>Dino Quiz</h1>
+      <div class="controls">
+        <button class="btn" id="muteToggle" type="button">Mute</button>
+        <span class="pill" id="bestScore">Best: 0</span>
+      </div>
+    </header>
+
+    <main class="content">
+      <section id="startScreen" class="screen active">
+        <div class="card">
+          <div class="split">
+            <div>
+              <span class="tag">Offline Dino Trivia</span>
+              <h2 style="margin:12px 0 6px 0;">Test your prehistoric knowledge</h2>
+              <p class="muted">12 questions. Mixed formats. Learn from every answer with fact-based explanations.</p>
+              <div style="margin-top:16px;" class="toggle" role="group" aria-label="Difficulty">
+                <button id="normalMode" class="active" type="button">Normal</button>
+                <button id="hardMode" type="button">Hard</button>
+              </div>
+              <div style="margin-top:18px;" class="footer-actions">
+                <button class="btn" id="playBtn" type="button">Play</button>
+                <span class="muted">Keys: 1–4 answer • Enter continue • Esc pause</span>
+              </div>
+            </div>
+            <div>
+              <div class="card" style="background: rgba(15,23,42,0.4);">
+                <h3 style="margin-top:0;">How it works</h3>
+                <ul class="muted" style="margin:0; padding-left:18px;">
+                  <li>Questions are generated only from your pasted facts.</li>
+                  <li>Ambiguous facts are skipped automatically.</li>
+                  <li>Difficulty ramps as the quiz progresses.</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+        <details id="debugPanel" style="margin-top:18px;">
+          <summary>Data Debug</summary>
+          <div id="debugContent" class="muted" style="margin-top:10px;"></div>
+        </details>
+      </section>
+
+      <section id="quizScreen" class="screen">
+        <div class="card">
+          <div class="progress">
+            <div style="min-width:120px;">Question <span id="qIndex">1</span> / 12</div>
+            <div class="progress-bar" aria-hidden="true"><span id="progressFill"></span></div>
+            <div class="pill">Score: <span id="score">0</span></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2 id="questionTitle" class="question-title">Question text</h2>
+          <div id="questionMeta" class="muted"></div>
+          <div id="answers" class="answers" role="list"></div>
+          <div id="explain" class="explain" aria-live="polite"></div>
+        </div>
+
+        <div class="footer-actions">
+          <button class="btn hidden" id="nextBtn" type="button">Continue</button>
+          <button class="btn" id="restartBtn" type="button">Restart</button>
+          <button class="btn" id="stopBtn" type="button">Stop</button>
+          <button class="btn" id="pauseBtn" type="button">Pause</button>
+        </div>
+      </section>
+
+      <section id="endScreen" class="screen">
+        <div class="card">
+          <h2>Quiz Complete</h2>
+          <p class="muted">Final Score: <strong id="finalScore">0</strong> / 12</p>
+          <div class="badges" id="badges"></div>
+          <div style="margin-top:16px;" class="footer-actions">
+            <button class="btn" id="playAgainBtn" type="button">Play Again</button>
+            <button class="btn" id="backToStartBtn" type="button">Back to Start</button>
+          </div>
+        </div>
+      </section>
+
+      <section id="pauseOverlay" class="screen">
+        <div class="card">
+          <h2>Paused</h2>
+          <p class="muted">Press Esc or Continue to resume.</p>
+          <button class="btn" id="resumeBtn" type="button">Continue</button>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    // === PASTE DINO DATA HERE ===
+    // Replace the array below with your structured data.
+    // Example:
+    // const DINO_DATA = [{ name: "Triceratops", diet: "Herbivore", keyFeatures: "...", footprintInfo: "...", teeth: "...", bodyStructure: "...", geologicTimePeriod: "...", environment: "...", otherFacts: "..." }]
+    const DINO_DATA = [
+    {
+      name: "Asteroids (Sea stars, brittle stars)",
+      diet: "Carnivore",
+      keyFeatures: "Sea stars move slowly with less distinct central disks; brittle stars have a clear central disk and move quickly with flexible arms.",
+      footprintInfo: "Move using thousands of tube feet powered by a water vascular system, leaving trails rather than footprints.",
+      teeth: "No traditional teeth or jaws; many digest food using an eversible stomach.",
+      bodyStructure: "Star-shaped body with a central disk and radiating arms; internal calcareous ossicles and a water vascular system.",
+      geologicTimePeriod: "Ordovician (about 485–443 million years ago) to present",
+      environment: "All oceans, from shallow to deep water",
+      otherFacts: "Both are echinoderms; important predators that help maintain marine ecosystem balance."
+    },
+    {
+      name: "Bivalves (Clams, mussels, oysters)",
+      diet: "Filter feeder",
+      keyFeatures: "Two hinged shells, strong closing muscles, and siphons that move water for feeding and breathing.",
+      footprintInfo: "Usually no footprints; fossils may preserve burrow traces, resting marks, and shallow impressions.",
+      teeth: "No teeth or jaws; gills and cilia trap microscopic food and move it to the mouth.",
+      bodyStructure: "Soft body protected by two shells; large gills, muscular foot (many), siphons, and powerful adductor muscles.",
+      geologicTimePeriod: "Cambrian to present",
+      environment: "Marine shelves, reefs, tidal flats, estuaries, plus many freshwater rivers and lakes",
+      otherFacts: "Useful index fossils and modern water cleaners due to filtering."
+    },
+    {
+      name: "Brachiopods",
+      diet: "Filter feeder",
+      keyFeatures: "Two valves (not like clams) and often a pedicle stalk used to attach to the seafloor.",
+      footprintInfo: "No footprints or trackways.",
+      teeth: "No teeth.",
+      bodyStructure: "Soft body inside shell; lophophore feeding structure; mantle tissue and (often) a pedicle opening.",
+      geologicTimePeriod: "Cambrian to present; abundant in Ordovician–Devonian, declined after Permian extinction",
+      environment: "Marine, bottom-dwelling; often attached in cool, low-energy settings from shelves to deep sea",
+      otherFacts: "Common fossils used to interpret ancient seafloor conditions."
+    },
+    {
+      name: "Cephalopods (Nautiloids, ammonoids, belemnoids)",
+      diet: "Carnivore",
+      keyFeatures: "Prominent head with arms/tentacles; active marine predators; many can release ink.",
+      footprintInfo: "No footprints; movement is swimming/jet propulsion so traces are rare.",
+      teeth: "Beak-like mouth plus a radula (toothed tongue-like organ) used to process prey.",
+      bodyStructure: "Bilateral symmetry; arms/tentacles around the mouth; soft-bodied marine mollusks.",
+      geologicTimePeriod: "Late Cambrian to present (groups vary by time period)",
+      environment: "All marine environments, from coasts to deep sea",
+      otherFacts: "Often considered among the most intelligent invertebrates."
+    },
+    {
+      name: "Coral (Sea coral, coral reefs)",
+      diet: "Carnivore",
+      keyFeatures: "Tiny polyps capture prey with tentacles; many reef corals also rely on symbiotic algae for energy.",
+      footprintInfo: "No footprints; fossils are preserved coral skeletons that record growth and past marine conditions.",
+      teeth: "No teeth.",
+      bodyStructure: "Colonies of polyp animals that build calcium carbonate skeletons (reef builders) or softer structures (soft corals).",
+      geologicTimePeriod: "Middle Cambrian to present",
+      environment: "Warm, clear, shallow tropical seas for reefs; deep-sea corals live cold and deep",
+      otherFacts: "Reefs support a huge share of marine life despite covering a small ocean area."
+    },
+    {
+      name: "Crustaceans (Shrimp, lobster, crabs, barnacles)",
+      diet: "Omnivore",
+      keyFeatures: "Hard chitin exoskeleton, segmented body, jointed legs, antennae, and compound eyes; many molt to grow.",
+      footprintInfo: "Trackways are uncommon but can show many small prints in parallel rows, sometimes with claw or tail marks.",
+      teeth: "No external teeth; strong mouthparts and sometimes internal 'gastric mill' teeth grind food.",
+      bodyStructure: "Body often includes a cephalothorax and abdomen; many have claws and multiple pairs of legs.",
+      geologicTimePeriod: "Cambrian to present",
+      environment: "Mostly marine; many freshwater species; some land-adapted crabs",
+      otherFacts: "Some fossils preserve delicate limbs; many can regenerate lost limbs after molting."
+    },
+    {
+      name: "Echinoids (Sea urchins, sand dollars)",
+      diet: "Omnivore",
+      keyFeatures: "Many are deposit feeders that sift sand; move using spines and tube feet.",
+      footprintInfo: "Usually locomotion trails rather than footprints.",
+      teeth: "Complex 5-part jaw system (often called Aristotle’s lantern).",
+      bodyStructure: "Hard calcareous test (shell) with spines; radial symmetry.",
+      geologicTimePeriod: "Ordovician to present",
+      environment: "Marine environments worldwide, including deep settings",
+      otherFacts: "Test shape helps identify groups (urchins vs sand dollars)."
+    },
+    {
+      name: "Trilobites",
+      diet: "Omnivore",
+      keyFeatures: "Extinct Paleozoic marine arthropods with a three-lobed calcite exoskeleton; highly successful group.",
+      footprintInfo: "Rare trace fossils (often grouped as Diplichnites) show movement on ancient sea floors.",
+      teeth: "No vertebrate-like teeth.",
+      bodyStructure: "Head (cephalon), segmented thorax, and tail (pygidium).",
+      geologicTimePeriod: "Cambrian to end-Permian (about 521–252 million years ago)",
+      environment: "Marine; from shallow warm waters to deeper sea floors",
+      otherFacts: "Lived for roughly 300 million years before going extinct."
+    },
+    {
+      name: "Bony Fish (Osteichthyes)",
+      diet: "Omnivore",
+      keyFeatures: "Defined by bony skeletons, operculum (gill cover), and a swim bladder for buoyancy control.",
+      footprintInfo: "No footprint/trackway information provided for bony fish.",
+      teeth: "Tooth details vary widely by species; not consistently provided in this dataset.",
+      bodyStructure: "Internal skeleton of bone; major diversification in the Devonian 'Age of Fishes.'",
+      geologicTimePeriod: "Late Silurian (about 425–420 million years ago) to present",
+      environment: "Nearly all aquatic habitats worldwide, fresh and saltwater",
+      otherFacts: "Largest group of vertebrates by number of species."
+    },
+    {
+      name: "Ichthyosaurs",
+      diet: "Carnivore",
+      keyFeatures: "Dolphin-like marine reptiles adapted for fast swimming; large eyes and narrow snouts for hunting.",
+      footprintInfo: "No footprints because they were fully marine and did not walk on land.",
+      teeth: "Long rows of sharp, cone-shaped teeth for gripping fish and squid.",
+      bodyStructure: "Streamlined body, paddle flippers, and a powerful vertical tail fin; very large eye sockets.",
+      geologicTimePeriod: "Triassic through Cretaceous (about 250–90 million years ago)",
+      environment: "Marine seas and open oceans worldwide",
+      otherFacts: "Gave live birth in water; fossils show embryos."
+    },
+    {
+      name: "Plesiosaurs",
+      diet: "Omnivore",
+      keyFeatures: "Marine reptiles with paddle-like flippers; many were fish-eaters and came in multiple body types.",
+      footprintInfo: "Footprints are extremely rare because they mostly swam.",
+      teeth: "Slender, conical, sharp teeth for grabbing prey.",
+      bodyStructure: "Broad barrel-shaped torso, short tail, and four large paddle-like flippers.",
+      geologicTimePeriod: "Late Triassic to Late Cretaceous (about 208.5–66 million years ago)",
+      environment: "Worldwide oceans",
+      otherFacts: "Not dinosaurs; a diverse group of marine reptiles."
+    },
+    {
+      name: "Pterosaurs",
+      diet: "Carnivore",
+      keyFeatures: "Flying reptiles; some had toothless beaks while others had toothed jaws.",
+      footprintInfo: "Trackways can show narrow prints with distinct digits and well-defined toes.",
+      teeth: "Varies by group: some toothed jaws, some toothless beaks.",
+      bodyStructure: "Lightweight fliers; this dataset notes very large wingspans (about 25–33 feet).",
+      geologicTimePeriod: "Cretaceous (as listed in this dataset)",
+      environment: "Coastal/ocean-associated settings (as listed here)",
+      otherFacts: "Often described as 'winged reptiles' rather than dinosaurs."
+    },
+    {
+      name: "Sharks and Rays (Shark teeth)",
+      diet: "Carnivore",
+      keyFeatures: "Cartilaginous fish; many are predators with specialized senses.",
+      footprintInfo: "No footprints because they are swimming animals.",
+      teeth: "Teeth vary by diet and are replaced continuously; fossils are common on beaches.",
+      bodyStructure: "Streamlined cartilaginous skeleton with rough dermal denticles and strong fins for stability and steering.",
+      geologicTimePeriod: "Silurian (about 420+ million years ago) to present",
+      environment: "Most marine environments worldwide; some species enter freshwater",
+      otherFacts: "Electroreception helps detect prey; only a few species commonly attack humans."
+    },
+    {
+      name: "Dinosaurs (general)",
+      diet: "Omnivore",
+      keyFeatures: "Land reptiles with upright posture and huge diversity: armored, horned, long-necked, fast predators, and feathered forms.",
+      footprintInfo: "Trackways show gait, speed, and group behavior; can preserve toe pads, claw marks, and skin impressions.",
+      teeth: "Teeth varied by diet and were often replaced throughout life.",
+      bodyStructure: "Bipedal or quadrupedal; some had hollow bones and feathers; others had armor, spikes, horns, or crests.",
+      geologicTimePeriod: "Triassic–Cretaceous (about 230–66 million years ago)",
+      environment: "Lived on land across all continents in forests, floodplains, deserts, swamps, plains, and coastal lowlands",
+      otherFacts: "Birds descend from small feathered theropod dinosaurs."
+    },
+    {
+      name: "Acrocanthosaurus",
+      diet: "Carnivore",
+      keyFeatures: "Large predatory dinosaur with strong hind legs and a long tail for balance.",
+      footprintInfo: "Three-toed clawed impressions (as listed here).",
+      teeth: "Curved, blade-like, serrated teeth.",
+      bodyStructure: "Huge head, relatively short arms, powerful hind limbs, long tail.",
+      geologicTimePeriod: "Aptian (about 122.46–113 million years ago)",
+      environment: "Floodplains, riverbeds, and forests",
+      otherFacts: "Often described as a major Early Cretaceous predator."
+    },
+    {
+      name: "Allosaurus",
+      diet: "Carnivore",
+      keyFeatures: "Large theropod predator with a massive lightweight skull; an apex predator of its time.",
+      footprintInfo: "Three-toed (tridactyl), V-shaped tracks from a bipedal stance.",
+      teeth: "Long, sharp, serrated teeth designed for slicing flesh.",
+      bodyStructure: "Bipedal; short 3-fingered arms; long muscular tail for balance.",
+      geologicTimePeriod: "Late Jurassic (about 155–145 million years ago)",
+      environment: "Open floodplains and forested areas (Morrison Formation noted in the source text)",
+      otherFacts: "Lived long before T. rex."
+    },
+    {
+      name: "Ankylosaurus",
+      diet: "Herbivore",
+      keyFeatures: "Heavily armored plant-eater with a tail club; low, tank-like body used for defense.",
+      footprintInfo: "Footprint fossils are associated with ankylosaurids (as noted here).",
+      teeth: "Small, leaf-shaped teeth for cropping plants.",
+      bodyStructure: "Quadrupedal; broad body covered in bony plates (osteoderms) and a powerful tail club.",
+      geologicTimePeriod: "Late Cretaceous (about 70–66 million years ago)",
+      environment: "Subtropical floodplains and forests of western North America",
+      otherFacts: "Relied on armor and tail club for protection."
+    },
+    {
+      name: "Apatosaurus",
+      diet: "Herbivore",
+      keyFeatures: "Massive sauropod with a long neck, thick column-like legs, and a long muscular tail for balance and defense.",
+      footprintInfo: "Large rounded/crescent front prints and oval hind prints; some trackways suggest group travel.",
+      teeth: "Small peg-like teeth for stripping leaves; swallowed food and used gastroliths for grinding.",
+      bodyStructure: "Huge barrel torso, long neck with air spaces in bones, small head, long tapering tail.",
+      geologicTimePeriod: "Late Jurassic (about 152–147 million years ago)",
+      environment: "Floodplains, river valleys, and forested lowlands with abundant vegetation",
+      otherFacts: "Historically confused with Brontosaurus; among the heaviest land animals."
+    },
+    {
+      name: "Archaeopteryx",
+      diet: "Carnivore",
+      keyFeatures: "Bird-like animal with dinosaur traits; often discussed as an early feathered form.",
+      footprintInfo: "Footprint details are not consistently specified here (treat as limited/variable).",
+      teeth: "Small, sharp, conical teeth.",
+      bodyStructure: "Bird-like body plan with dinosaurian features (as listed here).",
+      geologicTimePeriod: "Tithonian–Barremian (about 150.8–125.45 million years ago)",
+      environment: "Lagoons and vegetated islands",
+      otherFacts: "Commonly used to discuss transitions between dinosaurs and birds."
+    },
+    {
+      name: "Coelophysis",
+      diet: "Carnivore",
+      keyFeatures: "Early theropod; the dataset notes the name meaning 'hollow form.'",
+      footprintInfo: "Four toes with sharp nails (as listed here).",
+      teeth: "Many small serrated teeth (about 100 noted in the source text).",
+      bodyStructure: "Small, lightly built predator (size notes vary in the source text).",
+      geologicTimePeriod: "Late Triassic (about 225–220 million years ago)",
+      environment: "Forests with conifers and ferns",
+      otherFacts: "A well-known Late Triassic dinosaur."
+    },
+    {
+      name: "Deinonychus",
+      diet: "Carnivore",
+      keyFeatures: "Agile, feathered predator known for a large sickle-shaped claw on each hind foot.",
+      footprintInfo: "Direct footprint details are inconsistent in the source text; focus on behavior inferred from anatomy.",
+      teeth: "Sharp, curved, serrated teeth for slicing and gripping prey.",
+      bodyStructure: "Lightly built biped; medium-sized predator (about 10–11 feet long in the source text).",
+      geologicTimePeriod: "Early to Middle Cretaceous (about 115–100 million years ago)",
+      environment: "Floodplains and forests in North America (as listed here)",
+      otherFacts: "Important species in discussions of bird-like dinosaurs."
+    },
+    {
+      name: "Diplodocus",
+      diet: "Herbivore",
+      keyFeatures: "Extremely long body with long neck and whip-like tail; built for reach and feeding efficiency.",
+      footprintInfo: "Wide-stance sauropod trackways with rounded/crescent front prints and larger oval hind prints.",
+      teeth: "Pencil-like teeth mostly at the front of the jaws for stripping leaves; frequent replacement.",
+      bodyStructure: "Very long neck and tail; small skull; many bones had air spaces to reduce weight.",
+      geologicTimePeriod: "Late Jurassic (about 155–145 million years ago)",
+      environment: "Floodplains and river valleys; open woodlands and fern-rich lowlands",
+      otherFacts: "One of the best-known sauropods due to abundant fossils."
+    },
+    {
+      name: "Iguanodon",
+      diet: "Herbivore",
+      keyFeatures: "Large plant-eating dinosaur with a robust build and powerful hind legs.",
+      footprintInfo: "Three broad, U-shaped toe impressions with thick pads (as listed here).",
+      teeth: "Broad, leaf-shaped teeth.",
+      bodyStructure: "Could move bipedally or quadrupedally; stiff tail for balance.",
+      geologicTimePeriod: "Kimmeridgian–Cenomanian (about 157.3–66 million years ago, as listed here)",
+      environment: "Floodplains, forests, and swamps",
+      otherFacts: "A classic early-discovered dinosaur genus."
+    },
+    {
+      name: "Parasaurolophus",
+      diet: "Herbivore",
+      keyFeatures: "Hadrosaur with a prominent crest; the dataset notes it may have affected hearing.",
+      footprintInfo: "Three hoof-like toes on each hind foot and five digits on each hand (as listed here).",
+      teeth: "Dental batteries with many replaceable teeth.",
+      bodyStructure: "Large, robust body with a stiff tail; large hadrosaur build.",
+      geologicTimePeriod: "Late Cretaceous (about 76.5–73 million years ago)",
+      environment: "Rivers, swamps, and floodplains",
+      otherFacts: "Crest likely used for communication/display in addition to sound."
+    },
+    {
+      name: "Plateosaurus",
+      diet: "Herbivore",
+      keyFeatures: "Large, often bipedal herbivore from the Late Triassic; early relative of later sauropods.",
+      footprintInfo: "Footprint details are not consistently specified here (treat as limited/variable).",
+      teeth: "Small, leaf-shaped, serrated teeth.",
+      bodyStructure: "Long flexible neck; heavy body supported by strong hind limbs.",
+      geologicTimePeriod: "Late Triassic (about 214–204 million years ago)",
+      environment: "Forested areas, river valleys, and floodplains (Europe noted)",
+      otherFacts: "Often suggested to have lived in herds."
+    },
+    {
+      name: "Stegosaurus",
+      diet: "Herbivore",
+      keyFeatures: "Two rows of back plates and a spiked tail (thagomizer) for defense.",
+      footprintInfo: "Four-footed trackways; hind prints often larger due to rear-heavy build.",
+      teeth: "Small teeth and beak for cropping softer vegetation.",
+      bodyStructure: "Small skull; arched back; longer hind legs; plates embedded in skin.",
+      geologicTimePeriod: "Late Jurassic (about 155–150 million years ago)",
+      environment: "Open woodlands and floodplains with low vegetation such as ferns and cycads",
+      otherFacts: "Plates likely important for display; tail spikes used defensively."
+    },
+    {
+      name: "Triceratops",
+      diet: "Herbivore",
+      keyFeatures: "Large horned dinosaur with a parrot-like beak and a strong, heavy body.",
+      footprintInfo: "Four-toed tracks (as listed here).",
+      teeth: "Complex, self-sharpening dental batteries for processing plants.",
+      bodyStructure: "Rhino-like body; large frill and horns; quadrupedal stance.",
+      geologicTimePeriod: "Campanian–Maastrichtian (about 83.5–66 million years ago)",
+      environment: "Lush, warm, humid environments (as listed here)",
+      otherFacts: "One of the last well-known non-bird dinosaurs."
+    },
+    {
+      name: "Tyrannosaurus rex",
+      diet: "Carnivore",
+      keyFeatures: "Massive predator with a huge skull and powerful bite; among the most famous theropods.",
+      footprintInfo: "A very large footprint (about 96 cm) is noted in this dataset.",
+      teeth: "Large, robust teeth; the dataset describes them as banana-like and saw-edged.",
+      bodyStructure: "Very large biped; rough size notes include about 43 feet long and about 20 feet tall.",
+      geologicTimePeriod: "Late Cretaceous (about 69–66 million years ago noted)",
+      environment: "Plains and forests (as listed here)",
+      otherFacts: "Lived in western North America; fossils are found in several formations."
+    },
+    {
+      name: "Velociraptor",
+      diet: "Carnivore",
+      keyFeatures: "Small, feathered, agile predator with a sickle claw; bird-like body plan.",
+      footprintInfo: "Some prints may show reduced toe impressions because the sickle claw was held off the ground.",
+      teeth: "Sharp, curved, serrated teeth.",
+      bodyStructure: "Lightweight body with hollow bones; long stiff tail for balance; strong hind legs.",
+      geologicTimePeriod: "Late Cretaceous (about 75–71 million years ago)",
+      environment: "Arid, desert-like environments in Mongolia and China (as listed here)",
+      otherFacts: "Often turkey-sized in modern reconstructions."
+    },
+    {
+      name: "Burrows and Tubes (Trace fossils)",
+      diet: "Unknown",
+      keyFeatures: "Traces made by animals living or moving through sediment; they record behavior rather than bodies.",
+      footprintInfo: "Show tunnels and chambers: vertical shafts, U-shapes, branching networks, and surface trails.",
+      teeth: "No teeth in the trace itself; walls may show scratch marks or pellet linings.",
+      bodyStructure: "Burrow shape/size can hint at maker type (worm-like vs arthropod-like) and behavior.",
+      geologicTimePeriod: "Cambrian to present",
+      environment: "Marine sands/muds, tidal flats, river margins, lakebeds, and floodplain soils",
+      otherFacts: "Strong indicators of oxygen in sediment; bioturbation can mix layers and disrupt body fossils."
+    },
+    {
+      name: "Coprolites (Fossilized feces)",
+      diet: "Unknown",
+      keyFeatures: "Mineralized dung that can preserve direct diet evidence like bones, scales, and teeth fragments.",
+      footprintInfo: "Not applicable.",
+      teeth: "Coprolites can contain embedded teeth and bone fragments that reveal what was eaten.",
+      bodyStructure: "Not applicable.",
+      geologicTimePeriod: "Varies (depends on the producer)",
+      environment: "Varies (where burial and mineralization occurred)",
+      otherFacts: "Also called 'dung stones'; valuable for reconstructing ancient diets and food webs."
+    },
+    {
+      name: "Tracks and Trackways (Trace fossils)",
+      diet: "Unknown",
+      keyFeatures: "Footprints and sequences of steps that show behavior, speed, gait, and sometimes group movement.",
+      footprintInfo: "Best preserved in fine-grained, damp sediment near water; found in ancient shorelines and riverbanks.",
+      teeth: "Not applicable.",
+      bodyStructure: "Not applicable directly; but tracks can hint at foot anatomy and posture.",
+      geologicTimePeriod: "Varies (trace fossils occur across many periods)",
+      environment: "Sedimentary settings where mud/sand could be imprinted and preserved",
+      otherFacts: "Trackways can show walking vs running and herd movement patterns."
+    },
+    {
+      name: "Trails and Borings (Trace fossils)",
+      diet: "Unknown",
+      keyFeatures: "Trails are surface movement traces; borings are holes cut into hard substrates for shelter or feeding.",
+      footprintInfo: "Trails record motion across sediment; borings record interactions with hard materials like shell, wood, or rock.",
+      teeth: "Not applicable; traces may show scrape textures rather than body parts.",
+      bodyStructure: "Trace fossils record behavior more than anatomy, but can hint at the maker’s movement style.",
+      geologicTimePeriod: "Ediacaran (about 600+ million years ago) to present (as listed here)",
+      environment: "Marine and non-marine sediments; trails on soft surfaces and borings in hard substrates",
+      otherFacts: "Useful indicators of oxygen levels, water depth, and substrate conditions."
+    },
+    {
+      name: "Amber (Fossilized tree resin)",
+      diet: "Unknown",
+      keyFeatures: "Preserves small organisms and plant parts in 3D detail, including insects, pollen, and feathers.",
+      footprintInfo: "No footprints; can preserve organisms mid-motion and multiple trapped items in layers.",
+      teeth: "Amber itself has none, but trapped organisms can show tiny mouthparts and teeth-like structures.",
+      bodyStructure: "Exceptional preservation of delicate structures like wings, antennae, and tiny joints.",
+      geologicTimePeriod: "Multiple periods; especially famous from Cretaceous and Cenozoic deposits",
+      environment: "Forested ecosystems with resin-producing trees; resin burial and chemistry turn it into amber",
+      otherFacts: "Great for reconstructing ancient forests; dinosaur DNA claims are not considered reliable."
+    },
+    {
+      name: "Petrified Wood",
+      diet: "Unknown",
+      keyFeatures: "Fossil wood where organic material is replaced by minerals, preserving wood grain in stone.",
+      footprintInfo: "Not applicable.",
+      teeth: "Not applicable; can be confused with teeth due to stone-like appearance.",
+      bodyStructure: "Preserved wood anatomy in mineral form.",
+      geologicTimePeriod: "Late Triassic to present (as broadly listed here)",
+      environment: "Varies; typically buried wood exposed to mineral-rich groundwater over long time periods",
+      otherFacts: "Common fossil type used to interpret ancient forests and environments."
+    }
+  ]
+;
+    const QUESTION_COUNT = 12;
+    const LOCAL_BEST_KEY = "dino_quiz_best";
+    const LOCAL_MUTE_KEY = "dino_quiz_muted";
+
+    const state = {
+      dinosaurs: [],
+      factsMissing: [],
+      difficulty: "normal",
+      questions: [],
+      totalQuestions: QUESTION_COUNT,
+      currentIndex: 0,
+      score: 0,
+      answered: false,
+      muted: false,
+      paused: false
+    };
+
+    const el = {
+      start: document.getElementById("startScreen"),
+      quiz: document.getElementById("quizScreen"),
+      end: document.getElementById("endScreen"),
+      pause: document.getElementById("pauseOverlay"),
+      play: document.getElementById("playBtn"),
+      playAgain: document.getElementById("playAgainBtn"),
+      backStart: document.getElementById("backToStartBtn"),
+      resume: document.getElementById("resumeBtn"),
+      pauseBtn: document.getElementById("pauseBtn"),
+      next: document.getElementById("nextBtn"),
+      restart: document.getElementById("restartBtn"),
+      stop: document.getElementById("stopBtn"),
+      answers: document.getElementById("answers"),
+      title: document.getElementById("questionTitle"),
+      meta: document.getElementById("questionMeta"),
+      explain: document.getElementById("explain"),
+      score: document.getElementById("score"),
+      qIndex: document.getElementById("qIndex"),
+      progress: document.getElementById("progressFill"),
+      finalScore: document.getElementById("finalScore"),
+      badges: document.getElementById("badges"),
+      mute: document.getElementById("muteToggle"),
+      best: document.getElementById("bestScore"),
+      debugContent: document.getElementById("debugContent"),
+      normalMode: document.getElementById("normalMode"),
+      hardMode: document.getElementById("hardMode")
+    };
+
+    function sanitizeText(str) {
+      return str.replace(/\s+/g, " ").trim();
+    }
+
+    function normalizeDiet(text) {
+      const t = (text || "").toLowerCase();
+      const hasCarn = /carniv/.test(t);
+      const hasHerb = /herbiv/.test(t);
+      const hasOmni = /omniv/.test(t);
+      const hasFilter = /filter/.test(t);
+      if (hasFilter) return "Filter feeder";
+      const count = [hasCarn, hasHerb, hasOmni].filter(Boolean).length;
+      if (count !== 1) return "Unknown";
+      if (hasCarn) return "Carnivore";
+      if (hasHerb) return "Herbivore";
+      if (hasOmni) return "Omnivore";
+      return "Unknown";
+    }
+
+    function normalizeData(raw) {
+      const missing = [];
+      const normalized = (Array.isArray(raw) ? raw : []).map(entry => {
+        const e = entry || {};
+        const out = {
+          name: sanitizeText(e.name || ""),
+          diet: sanitizeText(e.diet || ""),
+          keyFeatures: sanitizeText(e.keyFeatures || ""),
+          footprintInfo: sanitizeText(e.footprintInfo || ""),
+          teeth: sanitizeText(e.teeth || ""),
+          bodyStructure: sanitizeText(e.bodyStructure || ""),
+          geologicTimePeriod: sanitizeText(e.geologicTimePeriod || ""),
+          environment: sanitizeText(e.environment || ""),
+          otherFacts: sanitizeText(e.otherFacts || ""),
+          quality: 0,
+          rawField: {
+            diet: sanitizeText(e.diet || ""),
+            keyFeatures: sanitizeText(e.keyFeatures || ""),
+            footprintInfo: sanitizeText(e.footprintInfo || ""),
+            teeth: sanitizeText(e.teeth || ""),
+            bodyStructure: sanitizeText(e.bodyStructure || ""),
+            geologicTimePeriod: sanitizeText(e.geologicTimePeriod || ""),
+            environment: sanitizeText(e.environment || ""),
+            otherFacts: sanitizeText(e.otherFacts || "")
+          }
+        };
+        out.diet = normalizeDiet(out.diet);
+        const usableFields = ["keyFeatures", "bodyStructure", "environment", "geologicTimePeriod", "diet"]
+          .filter(f => out[f]).length;
+        out.quality = usableFields;
+        return out;
+      }).filter(d => {
+        const badName = /ENTRY|BEGIN|END|:/.test((d.name || "").toUpperCase());
+        if (badName || !d.name || d.quality < 2) {
+          missing.push({ name: d.name || "(missing)", fields: ["invalid name or insufficient fields"] });
+          return false;
+        }
+        return true;
+      });
+      return { dinosaurs: normalized, missing };
+    }
+
+    function updateDebugPanel() {
+      const total = state.dinosaurs.length;
+      const missing = state.factsMissing;
+      const lines = [];
+      lines.push(`<strong>Parsed dinosaurs:</strong> ${total}`);
+      const poolSize = buildQuestionPool().length;
+      lines.push(`<strong>Question pool size:</strong> ${poolSize}`);
+      if (missing.length) {
+        lines.push("<strong>Missing fields:</strong>");
+        lines.push("<ul>");
+        for (const item of missing) {
+          lines.push(`<li>${item.name}: ${item.fields.join(", ")}</li>`);
+        }
+        lines.push("</ul>");
+      } else {
+        lines.push("<strong>Missing fields:</strong> none");
+      }
+      el.debugContent.innerHTML = lines.join("");
+    }
+
+    function randShuffle(arr) {
+      const copy = [...arr];
+      for (let i = copy.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [copy[i], copy[j]] = [copy[j], copy[i]];
+      }
+      return copy;
+    }
+
+    function pickUnique(arr, count, exclude = []) {
+      const pool = arr.filter(x => !exclude.includes(x));
+      return randShuffle(pool).slice(0, count);
+    }
+
+    function normalizeFact(text) {
+      return (text || "")
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+    }
+
+    function summarizeForQuestion(text, maxLen = 160) {
+      if (!text) return "";
+      const cleaned = sanitizeText(text).replace(/^[\-–—•]\s*/g, "");
+      const sentences = cleaned.match(/[^.!?]+[.!?]+|[^.!?]+$/g) || [cleaned];
+      let summary = sentences.slice(0, 2).join(" ").trim();
+      if (summary.length > maxLen) {
+        let cut = summary.slice(0, maxLen);
+        const lastSpace = cut.lastIndexOf(" ");
+        if (lastSpace > 40) cut = cut.slice(0, lastSpace);
+        summary = cut.trim();
+      }
+      if (!/[.!?]$/.test(summary)) summary += ".";
+      return summary;
+    }
+
+    function looksTruncated(text) {
+      return /[,:—-]$/.test(text) || /^[0-9]+$/.test(text);
+    }
+
+    function isValidText(text, min = 8, max = 160) {
+      if (!text) return false;
+      const t = text.trim();
+      if (t.length < min || t.length > max) return false;
+      if (looksTruncated(t)) return false;
+      return true;
+    }
+
+    function uniqueByField(dinos, field, value) {
+      const norm = normalizeFact(value);
+      if (!norm) return false;
+      let count = 0;
+      for (const d of dinos) {
+        const v = d[field] || "";
+        if (normalizeFact(v) === norm) count += 1;
+        if (count > 1) return false;
+      }
+      return count === 1;
+    }
+
+    function buildQuestionPool() {
+      const dinos = state.dinosaurs;
+      const questions = [];
+
+      function addQuestion(q) {
+        if (q && q.answers && q.answers.length >= 2) questions.push(q);
+      }
+
+      const dietOptions = Array.from(new Set(
+        dinos.map(d => d.diet).filter(d => ["Carnivore", "Herbivore", "Omnivore"].includes(d))
+      ));
+
+      for (const dino of dinos) {
+        if (!dino.name) continue;
+
+        if (dino.diet && dietOptions.length >= 3 && ["Carnivore", "Herbivore", "Omnivore"].includes(dino.diet)) {
+          const options = randShuffle(dietOptions.filter(o => o !== dino.diet)).slice(0, 3);
+          options.push(dino.diet);
+          const prompt = `What was the diet of ${dino.name}?`;
+          addQuestion({
+            type: "mc",
+            prompt,
+            answers: randShuffle(options),
+            correct: dino.diet,
+            explain: `Diet: ${dino.rawField.diet || dino.diet}`
+          });
+        }
+
+        if (dino.geologicTimePeriod && uniqueByField(dinos, "geologicTimePeriod", dino.geologicTimePeriod)) {
+          const prompt = `Which geologic time period did ${dino.name} live in?`;
+          const correct = summarizeForQuestion(dino.geologicTimePeriod, 80);
+          const options = randShuffle(
+            dinos
+              .map(d => d.geologicTimePeriod)
+              .filter(p => p && p !== dino.geologicTimePeriod)
+              .map(p => summarizeForQuestion(p, 80))
+          ).filter((v, i, a) => a.indexOf(v) === i).slice(0, 3);
+          if (options.length === 3 && isValidText(correct, 8, 80)) {
+            options.push(correct);
+            addQuestion({
+              type: "mc",
+              prompt,
+              answers: randShuffle(options),
+              correct: correct,
+              explain: `Geologic Time Period: ${dino.rawField.geologicTimePeriod || dino.geologicTimePeriod}`
+            });
+          }
+        }
+
+        if (dino.environment && uniqueByField(dinos, "environment", dino.environment)) {
+          const prompt = `Which environment best matches ${dino.name}?`;
+          const correct = summarizeForQuestion(dino.environment, 80);
+          const options = randShuffle(
+            dinos
+              .map(d => d.environment)
+              .filter(e => e && e !== dino.environment)
+              .map(e => summarizeForQuestion(e, 80))
+          ).filter((v, i, a) => a.indexOf(v) === i).slice(0, 3);
+          if (options.length === 3 && isValidText(correct, 8, 80)) {
+            options.push(correct);
+            addQuestion({
+              type: "mc",
+              prompt,
+              answers: randShuffle(options),
+              correct: correct,
+              explain: `Environment: ${dino.rawField.environment || dino.environment}`
+            });
+          }
+        }
+
+        if (dino.keyFeatures) {
+          const keySummary = summarizeForQuestion(dino.keyFeatures, 120);
+          const envSummary = dino.environment ? summarizeForQuestion(dino.environment, 80) : "";
+          const desc = sanitizeText([keySummary, envSummary].filter(Boolean).join(" "));
+          if (isValidText(desc, 20, 160)) {
+            addQuestion({
+              type: "mc",
+              prompt: "Which creature is described as:",
+              description: desc,
+              answers: buildAnswers(dino.name, dinos.map(d => d.name)),
+              correct: dino.name,
+              explain: [
+                dino.rawField.keyFeatures ? `Key Features: ${dino.rawField.keyFeatures}` : "",
+                dino.rawField.environment ? `Environment: ${dino.rawField.environment}` : ""
+              ].filter(Boolean).join(" | ")
+            });
+          }
+        }
+
+        if (dino.bodyStructure) {
+          const bodySummary = summarizeForQuestion(dino.bodyStructure, 140);
+          if (isValidText(bodySummary, 20, 160)) {
+            addQuestion({
+              type: "mc",
+              prompt: "Which creature has this body structure?",
+              description: bodySummary,
+              answers: buildAnswers(dino.name, dinos.map(d => d.name)),
+              correct: dino.name,
+              explain: `Body Structure: ${dino.rawField.bodyStructure || dino.bodyStructure}`
+            });
+          }
+        }
+
+        if (dino.teeth) {
+          const teethSummary = summarizeForQuestion(dino.teeth, 120);
+          if (isValidText(teethSummary, 20, 160)) {
+            addQuestion({
+              type: "mc",
+              prompt: "Which creature has this teeth description?",
+              description: teethSummary,
+              answers: buildAnswers(dino.name, dinos.map(d => d.name)),
+              correct: dino.name,
+              explain: `Teeth: ${dino.rawField.teeth || dino.teeth}`
+            });
+          }
+        }
+
+        if (dino.geologicTimePeriod) {
+          const otherPeriods = dinos
+            .map(d => d.geologicTimePeriod)
+            .filter(p => p && p !== dino.geologicTimePeriod);
+          if (otherPeriods.length) {
+            const wrongPeriod = summarizeForQuestion(randShuffle(otherPeriods)[0], 80);
+            const rightPeriod = summarizeForQuestion(dino.geologicTimePeriod, 80);
+            if (isValidText(wrongPeriod, 8, 80) && isValidText(rightPeriod, 8, 80)) {
+              addQuestion({
+                type: "tf",
+                prompt: `True or False: ${dino.name} lived during the ${wrongPeriod}.`,
+                answers: ["True", "False"],
+                correct: "False",
+                explain: `Geologic Time Period: ${dino.rawField.geologicTimePeriod || dino.geologicTimePeriod}`
+              });
+              addQuestion({
+                type: "tf",
+                prompt: `True or False: ${dino.name} lived during the ${rightPeriod}.`,
+                answers: ["True", "False"],
+                correct: "True",
+                explain: `Geologic Time Period: ${dino.rawField.geologicTimePeriod || dino.geologicTimePeriod}`
+              });
+            }
+          }
+        }
+      }
+
+      return questions;
+    }
+
+    function buildAnswers(correct, allNames) {
+      const choices = pickUnique(allNames, 3, [correct]);
+      choices.push(correct);
+      return randShuffle(choices).slice(0, 4);
+    }
+
+    function pickFactLine(dino, field) {
+      const raw = dino.rawField && dino.rawField[field] ? dino.rawField[field] : dino[field] || "";
+      return raw ? `${raw}` : "";
+    }
+
+    // Question factory & validation:
+    // - Use template-based prompts from structured fields only.
+    // - Summarize long fields; never paste raw paragraphs in prompts/options.
+    // - Enforce 8 MCQ + 4 T/F; regenerate if invalid.
+    // - Validate length, truncation, uniqueness, and option duplicates.
+    function selectQuestions(count) {
+      const pool = buildQuestionPool();
+      const mcq = pool.filter(q => q.type === "mc");
+      const tf = pool.filter(q => q.type === "tf");
+
+      const targetMCQ = Math.min(8, count);
+      const targetTF = Math.min(4, Math.max(0, count - targetMCQ));
+
+      function isValidQuestion(q) {
+        const prompt = q.prompt || "";
+        if (!isValidText(prompt, 8, 180)) return false;
+        if (q.description && !isValidText(q.description, 8, 180)) return false;
+        if (!q.answers || q.answers.length < 2) return false;
+        const opts = q.answers.map(a => (a || "").trim());
+        if (q.type === "tf") {
+          if (opts.some(o => !isValidText(o, 1, 10))) return false;
+        } else {
+          if (opts.some(o => !isValidText(o, 8, 80))) return false;
+        }
+        const unique = new Set(opts.map(o => o.toLowerCase()));
+        if (unique.size !== opts.length) return false;
+        if (!opts.includes(q.correct)) return false;
+        return true;
+      }
+
+      function pickUniqueQuestions(list, count) {
+        const out = [];
+        const seen = new Set();
+        const shuffled = randShuffle(list);
+        for (const q of shuffled) {
+          const key = q.prompt + "|" + (q.description || "") + "|" + q.correct;
+          if (seen.has(key)) continue;
+          if (!isValidQuestion(q)) continue;
+          seen.add(key);
+          out.push(q);
+          if (out.length >= count) break;
+        }
+        return out;
+      }
+
+      let selected = [
+        ...pickUniqueQuestions(mcq, targetMCQ),
+        ...pickUniqueQuestions(tf, targetTF)
+      ];
+
+      if (selected.length < count) {
+        const fallback = pickUniqueQuestions(pool, count);
+        selected = fallback;
+      }
+
+      return randShuffle(selected).slice(0, count);
+    }
+
+    function difficultyScore(q) {
+      let score = 1;
+      if (q.type === "tf") score += 0.5;
+      if (q.description && q.description.length > 40) score += 1;
+      if (q.prompt.toLowerCase().includes("environment")) score += 1;
+      if (state.difficulty === "hard") score += 1;
+      return score;
+    }
+
+    function showScreen(screen) {
+      [el.start, el.quiz, el.end, el.pause].forEach(s => s.classList.remove("active"));
+      screen.classList.add("active");
+    }
+
+    function initGame() {
+      state.score = 0;
+      state.currentIndex = 0;
+      state.answered = false;
+      const poolSize = buildQuestionPool().length;
+      state.totalQuestions = Math.min(QUESTION_COUNT, poolSize);
+      state.questions = selectQuestions(state.totalQuestions);
+      showScreen(el.quiz);
+      updateBestScore();
+      renderQuestion();
+      playSound("start");
+    }
+
+    function restartGame() {
+      state.score = 0;
+      state.currentIndex = 0;
+      state.answered = false;
+      renderQuestion();
+    }
+
+    function stopGame() {
+      showScreen(el.start);
+    }
+
+    function renderQuestion() {
+      const q = state.questions[state.currentIndex];
+      if (!q) {
+        endGame();
+        return;
+      }
+      state.answered = false;
+      el.next.classList.add("hidden");
+      el.explain.classList.remove("active");
+      el.explain.textContent = "";
+      el.qIndex.textContent = String(state.currentIndex + 1);
+      el.progress.style.width = `${((state.currentIndex) / state.totalQuestions) * 100}%`;
+      el.score.textContent = String(state.score);
+      el.title.textContent = q.prompt;
+      el.meta.textContent = q.description ? q.description : "";
+
+      el.answers.innerHTML = "";
+      q.answers.forEach((answer, idx) => {
+        const btn = document.createElement("button");
+        btn.className = "answer";
+        btn.type = "button";
+        btn.dataset.answer = answer;
+        btn.dataset.index = String(idx + 1);
+        btn.textContent = `${idx + 1}. ${answer}`;
+        btn.addEventListener("click", () => handleAnswer(answer, btn));
+        el.answers.appendChild(btn);
+      });
+    }
+
+    function handleAnswer(answer, btn) {
+      if (state.answered) return;
+      const q = state.questions[state.currentIndex];
+      state.answered = true;
+      const correct = answer === q.correct;
+      if (correct) {
+        state.score += 1;
+        btn.classList.add("correct");
+        playSound("correct");
+      } else {
+        btn.classList.add("incorrect");
+        const correctBtn = [...el.answers.children].find(b => b.dataset.answer === q.correct);
+        if (correctBtn) correctBtn.classList.add("correct");
+        playSound("wrong");
+      }
+      el.score.textContent = String(state.score);
+      el.explain.textContent = `Explain: ${q.explain}`;
+      el.explain.classList.add("active");
+      el.next.classList.remove("hidden");
+    }
+
+    function nextQuestion() {
+      if (!state.answered) return;
+      state.currentIndex += 1;
+      el.progress.style.width = `${(state.currentIndex / QUESTION_COUNT) * 100}%`;
+      if (state.currentIndex >= state.totalQuestions) {
+        endGame();
+      } else {
+        renderQuestion();
+      }
+    }
+
+    function endGame() {
+      el.finalScore.textContent = `${state.score} / ${state.totalQuestions}`;
+      buildBadges();
+      updateBestScore(true);
+      showScreen(el.end);
+      playSound("end");
+    }
+
+    function buildBadges() {
+      const score = state.score;
+      const badges = [];
+      if (score === 12) badges.push("Cretaceous Champ");
+      if (score >= 9) badges.push("Fossil Finder");
+      if (score >= 6) badges.push("Jurassic Journeyman");
+      if (score <= 4) badges.push("Field Researcher");
+      el.badges.innerHTML = badges.map(b => `<span class="badge">${b}</span>`).join("");
+    }
+
+    function updateBestScore(update = false) {
+      const best = Number(localStorage.getItem(LOCAL_BEST_KEY) || 0);
+      if (update && state.score > best) {
+        localStorage.setItem(LOCAL_BEST_KEY, String(state.score));
+      }
+      const latest = Number(localStorage.getItem(LOCAL_BEST_KEY) || 0);
+      el.best.textContent = `Best: ${latest}`;
+    }
+
+    function setDifficulty(mode) {
+      state.difficulty = mode;
+      if (mode === "hard") {
+        el.hardMode.classList.add("active");
+        el.normalMode.classList.remove("active");
+      } else {
+        el.normalMode.classList.add("active");
+        el.hardMode.classList.remove("active");
+      }
+    }
+
+    function toggleMute() {
+      state.muted = !state.muted;
+      localStorage.setItem(LOCAL_MUTE_KEY, state.muted ? "1" : "0");
+      el.mute.textContent = state.muted ? "Unmute" : "Mute";
+    }
+
+    function loadMute() {
+      state.muted = localStorage.getItem(LOCAL_MUTE_KEY) === "1";
+      el.mute.textContent = state.muted ? "Unmute" : "Mute";
+    }
+
+    function playSound(type) {
+      if (state.muted) return;
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const o = ctx.createOscillator();
+      const g = ctx.createGain();
+      o.connect(g);
+      g.connect(ctx.destination);
+      const now = ctx.currentTime;
+      let freq = 440;
+      let duration = 0.2;
+      if (type === "correct") { freq = 660; duration = 0.15; }
+      if (type === "wrong") { freq = 220; duration = 0.3; }
+      if (type === "start") { freq = 520; duration = 0.25; }
+      if (type === "end") { freq = 360; duration = 0.4; }
+      o.frequency.value = freq;
+      g.gain.setValueAtTime(0.001, now);
+      g.gain.exponentialRampToValueAtTime(0.25, now + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.001, now + duration);
+      o.start(now);
+      o.stop(now + duration);
+      o.onended = () => ctx.close();
+    }
+
+    function pauseGame() {
+      if (state.paused) return;
+      state.paused = true;
+      showScreen(el.pause);
+    }
+
+    function resumeGame() {
+      if (!state.paused) return;
+      state.paused = false;
+      showScreen(el.quiz);
+    }
+
+    function handleKey(e) {
+      if (el.quiz.classList.contains("active")) {
+        if (e.key >= "1" && e.key <= "4") {
+          const btn = [...el.answers.children].find(b => b.dataset.index === e.key);
+          if (btn) btn.click();
+        }
+        if (e.key === "Enter") {
+          if (!el.next.classList.contains("hidden")) nextQuestion();
+        }
+        if (e.key === "Escape") pauseGame();
+      } else if (el.pause.classList.contains("active")) {
+        if (e.key === "Escape" || e.key === "Enter") resumeGame();
+      }
+    }
+
+    function init() {
+      const parsed = normalizeData(DINO_DATA);
+      state.dinosaurs = parsed.dinosaurs;
+      state.factsMissing = parsed.missing;
+      updateDebugPanel();
+      loadMute();
+      updateBestScore();
+
+      el.play.addEventListener("click", () => initGame());
+      el.playAgain.addEventListener("click", () => initGame());
+      el.backStart.addEventListener("click", () => showScreen(el.start));
+      el.next.addEventListener("click", () => nextQuestion());
+      el.restart.addEventListener("click", () => restartGame());
+      el.stop.addEventListener("click", () => stopGame());
+      el.pauseBtn.addEventListener("click", () => pauseGame());
+      el.resume.addEventListener("click", () => resumeGame());
+      el.mute.addEventListener("click", () => toggleMute());
+      el.normalMode.addEventListener("click", () => setDifficulty("normal"));
+      el.hardMode.addEventListener("click", () => setDifficulty("hard"));
+      document.addEventListener("keydown", handleKey);
+
+      const poolSize = buildQuestionPool().length;
+      if (state.dinosaurs.length < 4 || poolSize < 1) {
+        el.play.disabled = true;
+        el.play.textContent = "Add More Dino Facts to Play";
+      } else {
+        el.play.disabled = false;
+        el.play.textContent = "Play";
+      }
+    }
+
+    init();
+  </script>
+</body>
+</html>
